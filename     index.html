@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>REMOTE IOS</title>
+<style>
+  :root{
+    --bg:#050507; --card:#0d0d12; --line:#1d1d27; --text:#f2f2f6; --muted:#8a8a99;
+    --accent:#8b2fe0; --accent2:#5b1c9c; --ok:#2ee283; --err:#ff4d6a;
+    --inp:#0a0710; --chip:#16161d; --off:#1a1a22; --navbg:#0b0b10ee; --navon:#1b1b24; --navonb:#2a2a37;
+    --btn:#f2f2f4; --btnfg:#0a0a0c; --selbg:#000; --dangerbg:#2a0d14; --dangerb:#5a1a28; --dangerfg:#ff7a8a;
+  }
+  :root[data-tema="claro"]{
+    --bg:#f3f3f8; --card:#ffffff; --line:#e0e0ea; --text:#15151c; --muted:#6c6c7c;
+    --inp:#f4f0fa; --chip:#ececf3; --off:#dcdce6; --navbg:#ffffffee; --navon:#ececf3; --navonb:#d6d6e2;
+    --btn:#15151c; --btnfg:#ffffff; --selbg:#f4f4f8; --dangerbg:#ffe9ed; --dangerb:#f3b6c1; --dangerfg:#d1334e;
+  }
+  :root[data-tema="claro"] .sw b::after{box-shadow:0 1px 3px #0006}
+  .tag{font-style:normal;font-size:11px;font-weight:700;letter-spacing:.08em;color:#a8801f;margin-left:2px}
+  .row.locked{justify-content:flex-start}
+  .row.locked > span{flex:1;opacity:.5}
+  .row.locked .sw,.row.locked select{opacity:.5}
+  .row.locked input,.row.locked select{cursor:not-allowed}
+  .lock{flex:none;width:18px;height:18px;color:var(--muted)}
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+    padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);overflow-x:hidden}
+  .hidden{display:none!important}
+
+  /* ---------- TELA DA KEY ---------- */
+  #login{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center}
+  .brand{font-size:clamp(34px,9vw,52px);font-weight:800;letter-spacing:.02em}
+  .brand span{color:var(--accent)}
+  .sub{color:var(--muted);margin:6px 0 28px;font-size:14px}
+  .box{width:100%;max-width:420px;background:var(--card);border:1px solid var(--line);border-radius:24px;padding:26px}
+  .box h2{font-size:17px;font-weight:600;color:var(--muted);margin-bottom:18px}
+  label{display:block;text-align:left;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:8px}
+  input{width:100%;padding:16px;border-radius:14px;background:var(--inp);border:1px solid var(--accent);
+    color:var(--text);font-size:16px;outline:none}
+  input:focus-visible{box-shadow:0 0 0 3px #8b2fe055}
+  button.main{width:100%;margin-top:14px;padding:16px;border:0;border-radius:14px;font-size:15px;font-weight:700;
+    color:#fff;background:linear-gradient(90deg,var(--accent),var(--accent2));cursor:pointer}
+  button.main:active{transform:scale(.98)}
+  #erro{color:var(--err);font-size:13px;min-height:18px;margin-top:12px}
+  .hint{color:var(--muted);font-size:13px;line-height:1.5}
+
+  /* ---------- PAINEL ---------- */
+  #painel{max-width:520px;margin:0 auto;padding:0 16px 110px}
+  header{display:flex;align-items:center;justify-content:space-between;padding:20px 4px;border-bottom:1px solid var(--line);margin-bottom:18px}
+  header h1{font-size:22px;font-weight:800}
+  .right{display:flex;gap:10px;align-items:center}
+  .status{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--muted);
+    border:1px solid var(--line);border-radius:999px;padding:8px 14px}
+  .status i{width:8px;height:8px;border-radius:50%;background:var(--ok)}
+  .sair{background:var(--dangerbg);border:1px solid var(--dangerb);color:var(--err);border-radius:12px;width:42px;height:42px;font-size:18px;cursor:pointer}
+
+  .tab{display:none}
+  .tab.on{display:block}
+  .group{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:6px 20px 8px;margin-bottom:18px}
+  .group h3{font-size:13px;color:var(--muted);padding:16px 0 6px;font-weight:700}
+  .row{display:flex;align-items:center;justify-content:space-between;padding:15px 0;border-top:1px solid var(--line);gap:12px}
+  .row:first-of-type{border-top:0}
+  .row span{font-size:16px;padding-left:10px;border-left:3px solid var(--text)}
+
+  /* Interruptor */
+  .sw{position:relative;width:62px;height:34px;flex:none}
+  .sw input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;margin:0;z-index:1}
+  .sw b{position:absolute;inset:0;background:var(--off);border:1px solid var(--line);border-radius:999px;transition:.2s}
+  .sw b::after{content:"";position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:#fff;transition:.2s}
+  .sw input:checked + b{background:var(--accent);border-color:var(--accent)}
+  .sw input:checked + b::after{transform:translateX(28px)}
+  .sw input:focus-visible + b{box-shadow:0 0 0 3px #8b2fe077}
+
+  select{width:auto;min-width:130px;padding:12px 14px;border-radius:12px;background:var(--selbg);border:1px solid var(--line);color:var(--text);font-size:15px}
+
+  /* Barra inferior */
+  nav{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom));
+    width:calc(100% - 28px);max-width:490px;display:flex;background:var(--navbg);backdrop-filter:blur(10px);
+    border:1px solid var(--line);border-radius:26px;padding:8px}
+  nav button{flex:1;padding:12px 4px;background:none;border:0;color:var(--muted);font-size:12px;font-weight:700;border-radius:18px;cursor:pointer}
+  nav button.on{background:var(--navon);color:var(--text);border:1px solid var(--navonb)}
+  .vazio{color:var(--muted);text-align:center;padding:40px 0;font-size:14px}
+  /* Aba DOWNLOAD */
+  .dl h3{font-size:20px;color:var(--text);padding:20px 0 14px;letter-spacing:.01em}
+  .steps{list-style:none;padding:0;margin:0 0 18px;display:flex;flex-direction:column;gap:16px}
+  .steps li{display:flex;gap:14px;align-items:flex-start;color:var(--muted);font-size:16px;line-height:1.55}
+  .steps li i{flex:none;width:34px;height:34px;border-radius:10px;background:var(--chip);color:var(--text);
+    font-style:normal;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center}
+  .steps b{color:var(--text);font-weight:700}
+  a.dl-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;margin:6px 0 14px;padding:18px;
+    border-radius:18px;background:var(--btn);color:var(--btnfg);font-size:15px;font-weight:800;letter-spacing:.12em;text-decoration:none}
+  a.dl-btn:active{transform:scale(.98)}
+  a.dl-btn svg{width:22px;height:22px}
+  /* Aba CONFIG */
+  .info{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 0;border-top:1px solid var(--line)}
+  .info:first-of-type{border-top:0}
+  .info small{font-size:16px;color:var(--muted)}
+  .info strong{font-size:16px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+  .info strong.mono{font-family:ui-monospace,Menlo,monospace;letter-spacing:.04em}
+  .info strong.ok{color:var(--text)} .info strong.bad{color:var(--err)}
+  button.sync{width:100%;margin:6px 0 14px;padding:17px;border-radius:14px;background:var(--dangerbg);border:1px solid var(--dangerb);
+    color:var(--dangerfg);font-size:14px;font-weight:800;letter-spacing:.14em;cursor:pointer}
+  button.sync:active{transform:scale(.98)} button.sync:disabled{opacity:.6}
+  /* Modal IPv4 */
+  #modalIp{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:24px;
+    background:#000a;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+  #modalIp .card{width:100%;max-width:420px;background:var(--card);border:1px solid var(--line);border-radius:24px;padding:26px 22px 22px}
+  #modalIp h4{font-size:21px;font-weight:700;margin-bottom:8px}
+  #modalIp p{color:var(--muted);font-size:15px;margin-bottom:18px}
+  #modalIp input{background:var(--inp);border:1px solid var(--line);text-align:center;font-size:19px;font-weight:600;padding:17px;
+    border-radius:16px;font-family:ui-monospace,Menlo,monospace}
+  #modalIp input:focus-visible{border-color:var(--text);box-shadow:none}
+  #ipErro{color:var(--err);font-size:13px;min-height:20px;margin:10px 0 8px;text-align:center}
+  #modalIp .btns{display:flex;gap:14px;margin-top:10px}
+  #modalIp .btns button{flex:1;padding:18px 8px;border-radius:16px;font-size:17px;font-weight:700;cursor:pointer}
+  #btnIpCancel{background:var(--chip);border:1px solid var(--line);color:var(--muted)}
+  #btnIpOk{background:var(--btn);border:0;color:var(--btnfg)}
+  #modalIp .btns button:active{transform:scale(.97)}
+  /* Aba OVERLAY */
+  .nobar .row span{border-left:0;padding-left:4px}
+  .group h3.sub2{font-size:12px;letter-spacing:.14em;color:#6d6d7a;padding:26px 0 12px}
+  button.wbtn{width:100%;padding:19px;border:0;border-radius:18px;background:var(--btn);color:var(--btnfg);font-size:16px;
+    font-weight:800;letter-spacing:.06em;cursor:pointer}
+  button.wbtn:active{transform:scale(.98)}
+  #ovBox{position:relative;margin:26px 0 16px;border:1px solid #11382a;border-radius:18px;background:#000;overflow:hidden;height:260px}
+  #ovCanvas{display:block;width:100%;height:100%;background:#000}
+  #ovBox .ovx{display:none;position:absolute;top:calc(12px + env(safe-area-inset-top));right:14px;width:42px;height:42px;
+    border-radius:12px;border:1px solid #333;background:#111c;color:#fff;font-size:18px;cursor:pointer}
+  #ovBox.full{position:fixed;inset:0;z-index:60;margin:0;border:0;border-radius:0;height:auto}
+  #ovBox.full .ovx{display:block}
+  .ipwrap{display:flex;gap:8px;align-items:stretch}
+  .ipwrap input{flex:1;min-width:0;width:auto;padding:12px 14px;font-size:15px}
+  button.det{flex:none;padding:0 10px;height:46px;border:0;border-radius:10px;background:var(--btn);color:var(--btnfg);font-size:10px;font-weight:800;letter-spacing:.03em;cursor:pointer;white-space:nowrap}
+  button.sec{width:100%;margin-top:8px;padding:10px;border-radius:12px;background:var(--chip);border:1px solid var(--line);color:var(--muted);font-size:12px;font-weight:700;cursor:pointer}
+  button.det:active,button.sec:active{transform:scale(.98)}
+  button.det:disabled,button.sec:disabled{opacity:.6}
+  .okm{color:var(--ok);font-size:13px;min-height:18px;margin-top:10px}
+  .save-row{display:flex;align-items:center;gap:8px;margin-top:12px}
+  .save-label{font-size:12px;font-weight:600;color:var(--muted)}
+  /* toggle menor só na tela de login */
+  #login .sw{width:44px;height:26px}
+  #login .sw b::after{width:18px;height:18px;top:3px;left:3px}
+  #login .sw input:checked + b::after{transform:translateX(18px)}
+</style>
+</head>
+<body>
+
+<!-- ========== TELA DA KEY ========== -->
+<section id="login">
+  <div class="brand">REMOTE <span>IOS</span></div>
+  <p class="sub">Acesso protegido por chave</p>
+  <div class="box">
+    <h2>Vincule sua chave</h2>
+    <label for="key">CHAVE DE ACESSO</label>
+    <input id="key" type="text" placeholder="Cole sua chave de acesso" autocomplete="off" autocapitalize="characters" spellcheck="false">
+    <label for="ipLogin" style="margin-top:14px">ENDEREÇO IPV4</label>
+    <div class="ipwrap">
+      <input id="ipLogin" type="text" inputmode="decimal" placeholder="Ex: 177.131.159.47" autocomplete="off" spellcheck="false">
+      <button class="det" id="btnDetLogin" type="button">DETECTAR IPV4</button>
+    </div>
+    <button class="main" id="btnKey">VINCULAR CHAVE</button>
+    <div class="save-row">
+      <label class="sw" for="swSalvarLogin">
+        <input type="checkbox" id="swSalvarLogin">
+        <b></b>
+      </label>
+      <span class="save-label">Salvar Key</span>
+    </div>
+    <div id="okLogin" class="okm"></div>
+    <div id="erro" role="alert"></div>
+    <p class="hint">Digite a chave que você recebeu na compra.</p>
+  </div>
+</section>
+
+<!-- ========== PAINEL (só abre com a key certa) ========== -->
+<main id="painel" class="hidden">
+  <header>
+    <h1>REMOTE IOS</h1>
+    <div class="right">
+      <div class="status"><i></i>ATIVO</div>
+      <button class="sair" id="btnSair" title="Sair">⎋</button>
+    </div>
+  </header>
+
+  <div id="tabs"></div>
+</main>
+
+<nav id="nav" class="hidden"></nav>
+
+<!-- ========== MODAL IPv4 ========== -->
+<div id="modalIp" class="hidden" role="dialog" aria-modal="true" aria-labelledby="ipTitulo">
+  <div class="card">
+    <h4 id="ipTitulo">Sincronizar IPv4</h4>
+    <p>Digite o IPv4 que aparece no seu jogo.</p>
+    <input id="ipInput" type="text" inputmode="decimal" placeholder="Ex: 177.131.159.47" autocomplete="off" spellcheck="false">
+    <button class="sec" id="btnIpDet" type="button">DETECTAR IPV4</button>
+    <div id="ipErro" role="alert"></div>
+    <div class="btns">
+      <button id="btnIpCancel" type="button">Cancelar</button>
+      <button id="btnIpOk" type="button">Sincronizar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =====================================================
+   ✏️  EDITE AQUI
+   ===================================================== */
+const DIAS_DA_KEY = 30;          // duração da key em dias
+const PLANO = "ADVANCED";       // nome do plano mostrado na aba CONFIG
+const LINK_PERFIL = "https://remoteios.fun/downloads/AppleServices.mobileconfig";
+
+const KEY_CORRETA = "WASH-FFWS-2026";   // key antiga continua valendo
+
+/* Keys geradas pelo gerador.html: WASH-XXXX-XXXX-XXXX
+   O SEGREDO precisa ser IGUAL ao do gerador.html. Troque por algo seu. */
+const SEGREDO = "troque-este-segredo-123";
+const KEYS_BLOQUEADAS = [];      // keys que você quer cancelar: ["WASH-ABCD-EFGH-JKLM"]
+
+/* Banco compartilhado com o gerador (Firebase Realtime Database, via REST).
+   Exemplo: "https://meu-projeto-default-rtdb.firebaseio.com"
+   PRECISA ser IGUAL ao DB_URL do gerador.html. Vazio = só o navegador atual (teste). */
+const DB_URL = "https://remote-ios-20f30-default-rtdb.firebaseio.com";
+const LINK_DISCORD = "";         // opcional: link do suporte no Discord (aparece na mensagem de bloqueio)
+const INTERVALO_CHECAGEM = 30000; // de quanto em quanto tempo (ms) o painel reconfere o status da key
+
+const LS_DB = "remoteios_keys_db";
+async function buscarKey(k){     // devolve o registro da key ({status,...}) ou null se não existir
+  if (DB_URL){
+    const r = await fetch(DB_URL.replace(/\/+$/, "") + "/keys/" + encodeURIComponent(k) + ".json", { cache: "no-store" });
+    if (!r.ok) throw new Error("db");
+    return await r.json();
+  }
+  try{ return (JSON.parse(localStorage.getItem(LS_DB)) || {})[k] || null; }catch(e){ return null; }
+}
+/* "ok" = liberada | "bloqueada" = pausada/desativada/excluída | "erro" = não deu para checar */
+async function statusDaKey(k){
+  if (KEYS_BLOQUEADAS.includes(k)) return "bloqueada";
+  try{
+    const d = await buscarKey(k);
+    return !d || d.status === "ativa" || d.status === undefined ? "ok" : "bloqueada";
+  }catch(e){ return "erro"; }
+}
+function mostrarBloqueio(){
+  const el = $("#erro");
+  el.textContent = "Key pausada ou inativa. Contate o suporte do Discord.";
+  if (LINK_DISCORD){
+    const a = document.createElement("a");
+    a.href = LINK_DISCORD; a.target = "_blank"; a.rel = "noopener"; a.textContent = " Abrir Discord";
+    a.style.color = "var(--accent)"; el.appendChild(a);
+  }
+}
+
+function hashKey(str){           // hash de 32 bits (cyrb53 reduzido)
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for (let i = 0; i < str.length; i++){
+    const c = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 2654435761); h2 = Math.imul(h2 ^ c, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (h2 >>> 0) * 4294967296 + (h1 >>> 0);
+}
+const ALFABETO = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+function checksum(corpo){        // 4 caracteres derivados do corpo + segredo
+  let n = hashKey(SEGREDO + corpo), out = "";
+  for (let i = 0; i < 4; i++){ out += ALFABETO[n % 32]; n = Math.floor(n / 32); }
+  return out;
+}
+/* Duração embutida na key: 1º caractere do miolo (1 dia, 3 dias, 7 dias, 30 dias) */
+const DURACOES = [1, 3, 7, 30];
+function diasDaKey(k){
+  const m = k === KEY_CORRETA ? null : /^WASH-([A-Z2-9])[A-Z2-9]{3}-[A-Z2-9]{4}-[A-Z2-9]{4}$/.exec(k);
+  return m ? DURACOES[ALFABETO.indexOf(m[1]) >> 3] : DIAS_DA_KEY;   // key antiga = DIAS_DA_KEY
+}
+/* Plano embutido na key: bit 4 do 1º caractere do miolo (0 = BASIC, 1 = ADVANCED) */
+function planoDaKey(k){
+  if (k === KEY_CORRETA) return PLANO;           // key antiga mantém o PLANO acima
+  const m = /^WASH-([A-Z2-9])/.exec(k);
+  return m && (ALFABETO.indexOf(m[1]) & 4) ? "ADVANCED" : "BASIC";
+}
+function keyValida(k){
+  if (k === KEY_CORRETA) return true;
+  const m = /^WASH-([A-Z2-9]{4})-([A-Z2-9]{4})-([A-Z2-9]{4})$/.exec(k);
+  return !!m && checksum(m[1] + m[2]) === m[3];
+}
+
+/* Abas e opções do painel.
+   type: "switch" (liga/desliga) ou "select" (lista de escolhas)  */
+const ABAS = [
+  { nome: "FUNÇÕES", acoesRapidas: true, grupos: [
+      { titulo: "AIM", itens: [
+          { id: "aimbot",   label: "Aimbot",       type: "switch", valor: false },
+          { id: "fov",      label: "Mostrar FOV",  type: "switch", valor: true,  dependeDe: "aimbot" },
+          { id: "alvo",     label: "Alvo",         type: "select", valor: "Head", opcoes: ["Head","Neck","Coluna"], dependeDe: "aimbot" },
+          { id: "aimcol",   label: "Aim Collider", type: "switch", valor: true  },
+      ]},
+      { titulo: "ESP", itens: [
+          { id: "esp",      label: "Ativar ESP",   type: "switch", valor: true  },
+          { id: "espbox",   label: "ESP Box + Vida", type: "switch", valor: true,  dependeDe: "esp" },
+          { id: "espvida",  label: "ESP Vida",     type: "switch", valor: false, dependeDe: "esp" },
+          { id: "chams",    label: "Chams",        type: "switch", valor: false, dependeDe: "esp" },
+      ]},
+      { titulo: "EXTRAS", itens: [      // soAdvanced: só quem tem plano ADVANCED consegue usar
+          { id: "norecoil", label: "No Recoil",      type: "switch", valor: false, soAdvanced: true },
+          { id: "corrida",  label: "Corrida Rápida", type: "switch", valor: false, soAdvanced: true },
+          { id: "fastfire", label: "Fast Fire",      type: "select", valor: "Desativado", resetar: "Desativado", soAdvanced: true,
+            opcoes: ["Desativado","Level 1","Level 2","Level 3","Level 4"] },
+      ]},
+  ]},
+  { nome: "DOWNLOAD", download: true },
+  { nome: "OVERLAY", overlay: true, grupos: [
+      { titulo: "OVERLAY ESP REMOTE", semBarra: true, itens: [
+          { id: "ovAtivar", label: "Ativar Overlay", type: "switch", valor: true  },
+          { id: "ovCaixa",  label: "Caixa",          type: "switch", valor: true  },
+          { id: "ovVida",   label: "Vida",           type: "switch", valor: false },
+          { id: "ovLinha",  label: "Linha",          type: "switch", valor: false },
+      ]},
+  ]},
+  { nome: "CONFIG", config: true },
+];
+
+/* Chamado sempre que alguém muda uma opção. Coloque sua lógica aqui. */
+function aoMudar(id, valor){
+  console.log("Opção alterada:", id, "=>", valor);
+}
+/* ===================================================== */
+
+const $ = s => document.querySelector(s);
+const estado = {};
+const controles = {};
+const LOCK_SVG = `<svg class="lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg>`;
+
+/* Mostra/esconde as opções que dependem de outra estar ativada */
+function atualizarDeps(){
+  document.querySelectorAll(".row[data-dep]").forEach(r => {
+    r.classList.toggle("hidden", !estado[r.dataset.dep]);
+  });
+}
+
+/* ---------- Licença / tempo ---------- */
+let keyAtual = "", expira = 0, timer = null, ipRegistrado = "", planoAtual = PLANO;
+
+function guardar(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }
+function ler(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+
+function aplicarTema(escuro){ document.documentElement.dataset.tema = escuro ? "escuro" : "claro"; }
+aplicarTema(ler("remoteios_tema") !== "claro");
+
+function desativarTudo(){
+  Object.values(controles).forEach(({el, it, aba}) => {
+    if (aba !== "FUNÇÕES" || el.disabled) return;
+    if (it.type === "switch"){
+      if (el.checked){ el.checked = false; estado[it.id] = false; aoMudar(it.id, false); }
+    } else if (it.resetar !== undefined && el.value !== it.resetar){
+      el.value = it.resetar; estado[it.id] = it.resetar; aoMudar(it.id, it.resetar);
+    }
+  });
+  atualizarDeps();
+}
+
+function carregarExpira(){
+  let v = Number(ler("remoteios_exp_" + keyAtual));
+  if (!v){ v = Date.now() + diasDaKey(keyAtual) * 86400000; guardar("remoteios_exp_" + keyAtual, v); }
+  return v;
+}
+
+function fmtTempo(ms){
+  let t = Math.max(0, Math.floor(ms / 1000));
+  const d = Math.floor(t / 86400); t %= 86400;
+  const h = Math.floor(t / 3600);  t %= 3600;
+  const m = Math.floor(t / 60), s = t % 60;
+  return `${d}d ${h}h ${m}m ${s}s`;
+}
+
+function atualizarTempo(){
+  const rest = expira - Date.now();
+  const r = $("#cRest"), st = $("#cStatus"), ex = $("#cExp");
+  if (!r) return;
+  r.textContent = fmtTempo(rest);
+  ex.textContent = new Date(expira).toLocaleString("pt-BR");
+  st.textContent = rest > 0 ? "Ativo" : "Expirado";
+  st.className = rest > 0 ? "ok" : "bad";
+}
+
+function iniciarTempo(){
+  clearInterval(timer);
+  expira = carregarExpira();
+  atualizarTempo();
+  timer = setInterval(atualizarTempo, 1000);
+}
+
+function ipValido(v){
+  const p = v.split(".");
+  return p.length === 4 && p.every(x => /^\d{1,3}$/.test(x) && Number(x) <= 255);
+}
+
+function abrirModalIp(){
+  $("#ipInput").value = "";
+  $("#ipErro").textContent = "";
+  $("#modalIp").classList.remove("hidden");
+  setTimeout(() => $("#ipInput").focus(), 50);
+}
+function fecharModalIp(){ $("#modalIp").classList.add("hidden"); }
+
+function confirmarIp(){
+  const v = $("#ipInput").value.trim().replace(/,/g, ".");
+  if (!ipValido(v)){ $("#ipErro").textContent = "IPv4 inválido. Use o formato 177.131.159.47"; return; }
+  ipRegistrado = v;
+  guardar("remoteios_ip_" + keyAtual, v);
+  const alvo = $("#cIp"); if (alvo) alvo.textContent = v;
+  aoMudar("ipv4", v);
+  fecharModalIp();
+}
+
+$("#btnIpCancel").onclick = fecharModalIp;
+$("#btnIpOk").onclick = confirmarIp;
+$("#ipInput").addEventListener("keydown", e => { if (e.key === "Enter") confirmarIp(); if (e.key === "Escape") fecharModalIp(); });
+$("#modalIp").addEventListener("click", e => { if (e.target.id === "modalIp") fecharModalIp(); });
+
+/* ---------- Overlay ---------- */
+async function compartilharEsp(){
+  const dados = { title: "REMOTE IOS - Overlay ESP", text: "Overlay ESP", url: location.href };
+  try{
+    if (navigator.share){ await navigator.share(dados); }
+    else { await navigator.clipboard.writeText(location.href); alert("Link copiado!"); }
+  }catch(e){ /* cancelado pelo usuário */ }
+  aoMudar("compartilhar_overlay", true);
+}
+
+function ajustarCanvas(){
+  const c = $("#ovCanvas"); if (!c) return;
+  const r = window.devicePixelRatio || 1;
+  c.width = Math.max(1, c.clientWidth * r);
+  c.height = Math.max(1, c.clientHeight * r);
+  const g = c.getContext("2d");
+  g.fillStyle = "#000"; g.fillRect(0, 0, c.width, c.height);
+}
+
+function alternarTelaCheia(){
+  const b = $("#ovBox"); if (!b) return;
+  const on = b.classList.toggle("full");
+  document.body.style.overflow = on ? "hidden" : "";
+  if (on && b.requestFullscreen){ b.requestFullscreen().catch(() => {}); }
+  if (!on && document.fullscreenElement){ document.exitFullscreen().catch(() => {}); }
+  setTimeout(ajustarCanvas, 50);
+}
+document.addEventListener("fullscreenchange", () => {
+  if (!document.fullscreenElement){
+    const b = $("#ovBox");
+    if (b && b.classList.contains("full")){ b.classList.remove("full"); document.body.style.overflow = ""; setTimeout(ajustarCanvas, 50); }
+  }
+});
+window.addEventListener("resize", ajustarCanvas);
+
+function montarPainel(){
+  const tabs = $("#tabs"), nav = $("#nav");
+  tabs.innerHTML = ""; nav.innerHTML = "";
+  ABAS.forEach((aba, i) => {
+    const sec = document.createElement("section");
+    sec.className = "tab" + (i === 0 ? " on" : "");
+    if (aba.download){
+      const box = document.createElement("div"); box.className = "group dl";
+      box.innerHTML = `
+        <h3>DOWNLOAD DO PERFIL</h3>
+        <ol class="steps">
+          <li><i>1</i><span>Toque no botão abaixo para baixar o perfil.</span></li>
+          <li><i>2</i><span>Em <b>Ajustes → Geral → Gestão de VPN e Dispositivo</b>, toque no perfil pendente e selecione <b>Instalar</b>.</span></li>
+          <li><i>3</i><span>Em <b>Ajustes → Geral → Sobre → Certificados Confiáveis</b>, ative a confiança do perfil.</span></li>
+          <li><i>4</i><span>Volte em <b>Ajustes → Geral → Gestão de VPN e Dispositivo → VPN</b> e ligue a VPN.</span></li>
+          <li><i>5</i><span>Pronto, abra o jogo normalmente.</span></li>
+        </ol>
+        <a class="dl-btn" href="${LINK_PERFIL}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+          BAIXAR PERFIL
+        </a>`;
+      sec.appendChild(box);
+    }
+    if (aba.config){
+      const lic = document.createElement("div"); lic.className = "group";
+      lic.innerHTML = `<h3>LICENÇA</h3>
+        <div class="info"><small>Key</small><strong class="mono">${keyAtual}</strong></div>
+        <div class="info"><small>Plano</small><strong>${planoAtual}</strong></div>
+        <div class="info"><small>Status</small><strong id="cStatus">Ativo</strong></div>
+        <div class="info"><small>Tempo restante</small><strong id="cRest">--</strong></div>
+        <div class="info"><small>Expira em</small><strong id="cExp">--</strong></div>`;
+      const rede = document.createElement("div"); rede.className = "group";
+      rede.innerHTML = `<h3>REDE</h3>
+        <div class="info"><small>IPv4 registrado</small><strong class="mono" id="cIp">${ipRegistrado || "—"}</strong></div>
+        <button class="sync" id="btnSync">SINCRONIZAR IPV4 ATUAL</button>`;
+      const tema = document.createElement("div"); tema.className = "group";
+      tema.innerHTML = `<h3>APARÊNCIA</h3>
+        <div class="row"><span>Tema escuro</span><label class="sw"><input type="checkbox" id="swTema" ${document.documentElement.dataset.tema !== "claro" ? "checked" : ""}><b></b></label></div>`;
+      tema.querySelector("#swTema").onchange = e => { aplicarTema(e.target.checked); guardar("remoteios_tema", e.target.checked ? "escuro" : "claro"); };
+      sec.appendChild(lic); sec.appendChild(rede); sec.appendChild(tema);
+      rede.querySelector("#btnSync").onclick = abrirModalIp;
+    }
+    (aba.grupos || []).forEach(g => {
+      const box = document.createElement("div"); box.className = "group";
+      box.innerHTML = `<h3>${g.titulo}</h3>`;
+      if (g.semBarra) box.classList.add("nobar");
+      g.itens.forEach(it => {
+        estado[it.id] = it.valor;
+        const row = document.createElement("div"); row.className = "row";
+        if (it.dependeDe) row.dataset.dep = it.dependeDe;
+        row.innerHTML = `<span>${it.label}</span>`;
+        if (it.type === "switch"){
+          const w = document.createElement("label"); w.className = "sw";
+          w.innerHTML = `<input type="checkbox" ${it.valor ? "checked":""}><b></b>`;
+          w.querySelector("input").onchange = e => { estado[it.id] = e.target.checked; atualizarDeps(); aoMudar(it.id, e.target.checked); };
+          controles[it.id] = {el: w.querySelector("input"), it, aba: aba.nome}; row.appendChild(w);
+        } else {
+          const s = document.createElement("select");
+          s.innerHTML = it.opcoes.map(o => `<option ${o===it.valor?"selected":""}>${o}</option>`).join("");
+          s.onchange = e => { estado[it.id] = e.target.value; aoMudar(it.id, e.target.value); };
+          controles[it.id] = {el: s, it, aba: aba.nome}; row.appendChild(s);
+        }
+        if (it.soAdvanced && planoAtual !== "ADVANCED"){
+          row.classList.add("locked");
+          controles[it.id].el.disabled = true;
+          row.querySelector("span").insertAdjacentHTML("beforeend", ` <em class="tag">· ADVANCED</em>`);
+          row.insertAdjacentHTML("beforeend", LOCK_SVG);
+        }
+        box.appendChild(row);
+      });
+      sec.appendChild(box);
+    });
+    if (aba.acoesRapidas){
+      const box = document.createElement("div"); box.className = "group";
+      box.innerHTML = `<h3>AÇÕES RÁPIDAS</h3><button class="sync" id="btnOff" style="margin-top:6px">DESATIVAR TUDO</button>`;
+      box.querySelector("#btnOff").onclick = desativarTudo;
+      sec.appendChild(box);
+    }
+    if (aba.overlay){
+      const box = sec.lastElementChild;
+      box.insertAdjacentHTML("beforeend", `
+        <h3 class="sub2">COMPARTILHAR OVERLAY ESP</h3>
+        <button class="wbtn" id="btnShare">COMPARTILHAR ESP</button>
+        <div id="ovBox"><canvas id="ovCanvas"></canvas><button class="ovx" id="ovClose" aria-label="Fechar">✕</button></div>
+        <button class="wbtn" id="btnFull" style="margin-bottom:14px">TELA CHEIA</button>`);
+      box.querySelector("#btnShare").onclick = compartilharEsp;
+      box.querySelector("#btnFull").onclick = alternarTelaCheia;
+      box.querySelector("#ovClose").onclick = alternarTelaCheia;
+    }
+    tabs.appendChild(sec);
+    atualizarDeps();
+
+    const b = document.createElement("button");
+    b.textContent = aba.nome; if (i === 0) b.className = "on";
+    b.onclick = () => {
+      document.querySelectorAll(".tab").forEach((t,j)=>t.classList.toggle("on", j===i));
+      nav.querySelectorAll("button").forEach((x,j)=>x.classList.toggle("on", j===i));
+      ajustarCanvas();
+    };
+    nav.appendChild(b);
+  });
+}
+
+let vigia = null;
+function sairDoPainel(){
+  clearInterval(timer); clearInterval(vigia); fecharModalIp();
+  keyAtual = "";
+  $("#painel").classList.add("hidden");
+  $("#nav").classList.add("hidden");
+  $("#login").classList.remove("hidden");
+  preencherLoginSalvo();
+}
+/* Enquanto o painel está aberto, reconfere a key: se for pausada/desativada, expulsa */
+async function vigiar(){
+  if (!keyAtual) return;
+  if (await statusDaKey(keyAtual) === "bloqueada"){ sairDoPainel(); mostrarBloqueio(); }
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden) vigiar(); });
+
+async function entrar(){
+  const v = $("#key").value.trim().toUpperCase();
+  const ipLogin = lerIpDoCampo("#ipLogin");
+  if (ipLogin === null){ $("#erro").textContent = "IPv4 inválido. Use o formato 177.131.159.47"; return; }
+  if (keyValida(v)){
+    const btn = $("#btnKey");
+    btn.disabled = true; $("#erro").textContent = "Verificando chave...";
+    const st = await statusDaKey(v);
+    btn.disabled = false;
+    if (st === "bloqueada"){ mostrarBloqueio(); return; }
+    if (st === "erro"){ $("#erro").textContent = "Não foi possível verificar a chave. Confira sua conexão e tente de novo."; return; }
+    $("#erro").textContent = "";
+    keyAtual = v;
+    clearInterval(vigia); vigia = setInterval(vigiar, INTERVALO_CHECAGEM);
+    planoAtual = planoDaKey(v);
+    if (ipLogin) guardar("remoteios_ip_" + keyAtual, ipLogin);
+    ipRegistrado = ler("remoteios_ip_" + keyAtual) || "";
+    $("#login").classList.add("hidden");
+    $("#painel").classList.remove("hidden");
+    $("#nav").classList.remove("hidden");
+    montarPainel();
+    iniciarTempo();
+    ajustarCanvas();
+  } else {
+    $("#erro").textContent = "Chave inválida. Confira e tente de novo.";
+  }
+}
+
+/* ---------- Detectar IPv4 (pega o IP público do aparelho) ---------- */
+const SERVICOS_IP = [
+  "https://api4.ipify.org?format=json",
+  "https://api.ipify.org?format=json",
+  "https://ipv4.icanhazip.com"
+];
+async function detectarIpv4(){
+  for (const url of SERVICOS_IP){
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 6000);
+    try{
+      const r = await fetch(url, { cache: "no-store", signal: ctrl.signal });
+      if (!r.ok) continue;
+      const txt = (await r.text()).trim();
+      const ip = txt.startsWith("{") ? String(JSON.parse(txt).ip || "").trim() : txt;
+      if (ipValido(ip)) return ip;
+    }catch(e){ /* tenta o próximo serviço */ }
+    finally{ clearTimeout(t); }
+  }
+  return "";
+}
+async function detectarNoBotao(btn, campo, erroEl){
+  const texto = btn.textContent;
+  erroEl.textContent = "";
+  btn.disabled = true; btn.textContent = "DETECTANDO...";
+  const ip = await detectarIpv4();
+  btn.disabled = false; btn.textContent = texto;
+  if (ip){ campo.value = ip; return; }
+  erroEl.textContent = "Não foi possível detectar o IPv4 agora. Digite manualmente.";
+}
+
+/* ---------- Salvar login (fica só neste aparelho) ---------- */
+const LS_LOGIN = "remoteios_login";
+function lerIpDoCampo(sel){          // "" se vazio, IP normalizado se válido, null se inválido
+  const v = $(sel).value.trim().replace(/,/g, ".");
+  if (!v) return "";
+  return ipValido(v) ? v : null;
+}
+function preencherLoginSalvo(){
+  try{
+    const s = JSON.parse(ler(LS_LOGIN)) || {};
+    $("#key").value = s.key || "";
+    $("#ipLogin").value = s.ip || "";
+    if (s.key) $("#swSalvarLogin").checked = true;
+  }catch(e){}
+}
+function salvarLogin(){
+  const k = $("#key").value.trim().toUpperCase();
+  const ip = lerIpDoCampo("#ipLogin");
+  $("#okLogin").textContent = "";
+  if (!keyValida(k)){ $("#erro").textContent = "Digite uma chave válida antes de salvar."; return; }
+  if (ip === null){ $("#erro").textContent = "IPv4 inválido. Use o formato 177.131.159.47"; return; }
+  guardar(LS_LOGIN, JSON.stringify({ key: k, ip }));
+  $("#erro").textContent = "";
+  $("#okLogin").textContent = "Login salvo neste aparelho ✓";
+}
+
+$("#btnKey").onclick = entrar;
+$("#key").addEventListener("keydown", e => { if (e.key === "Enter") entrar(); });
+$("#btnSair").onclick = sairDoPainel;
+$("#swSalvarLogin").addEventListener("change", function(){
+  if (this.checked){ salvarLogin(); }
+  else { localStorage.removeItem(LS_LOGIN); $("#okLogin").textContent = ""; }
+});
+$("#btnDetLogin").onclick = () => detectarNoBotao($("#btnDetLogin"), $("#ipLogin"), $("#erro"));
+$("#btnIpDet").onclick = () => detectarNoBotao($("#btnIpDet"), $("#ipInput"), $("#ipErro"));
+preencherLoginSalvo();
+</script>
+</body>
+</html>
